@@ -630,22 +630,29 @@
                     <div class="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100">
                         <h3 class="text-2xl font-bold mb-2">Escríbenos un mensaje</h3>
                         <p class="text-slate-400 mb-8">Te respondemos en menos de 24h.</p>
-                        <form class="space-y-5">
+                        <form id="lead-form" class="space-y-5" novalidate>
                             <div><label for="c-name"
                                     class="block text-sm font-semibold text-slate-700 mb-2">Nombre</label><input
-                                    type="text" id="c-name" placeholder="Tu nombre"
+                                    type="text" id="c-name" name="name" placeholder="Tu nombre" required minlength="2"
                                     class="w-full px-5 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-brand-100 focus:border-brand-300 transition-all" />
                             </div>
                             <div><label for="c-phone"
                                     class="block text-sm font-semibold text-slate-700 mb-2">Teléfono</label><input
-                                    type="tel" id="c-phone" placeholder="+34 600 000 000"
+                                    type="tel" id="c-phone" name="phone" placeholder="+34 600 000 000" required
                                     class="w-full px-5 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-brand-100 focus:border-brand-300 transition-all" />
                             </div>
                             <div><label for="c-msg"
                                     class="block text-sm font-semibold text-slate-700 mb-2">Mensaje</label><textarea
-                                    id="c-msg" rows="4" placeholder="Describe tu dolencia..."
+                                    id="c-msg" name="message" rows="4" placeholder="Describe tu dolencia..." required minlength="10"
                                     class="w-full px-5 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-brand-100 focus:border-brand-300 transition-all resize-none"></textarea>
-                            </div><button type="submit" class="btn-primary w-full text-lg py-4">Enviar mensaje</button>
+                            </div>
+                            <div style="display:none !important;" aria-hidden="true">
+                                <label for="website">No rellenar</label>
+                                <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+                            </div>
+                            <div class="g-recaptcha" data-sitekey="6LemOsYsAAAAAGM3ezk8yx14bkeZ0owQuXqY4_2f"></div>
+                            <button id="lead-submit-btn" type="submit" class="btn-primary w-full text-lg py-4">Enviar mensaje</button>
+                            <p id="lead-form-status" class="text-sm text-slate-500 text-center" role="status" aria-live="polite"></p>
                             <p class="text-xs text-slate-400 text-center">Al enviar aceptas nuestra Política de
                                 Privacidad</p>
                         </form>
@@ -733,6 +740,68 @@
                 d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z">
             </path>
         </svg></a><!--$--><!--/$-->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script>
+        (() => {
+            const form = document.getElementById("lead-form");
+            const statusEl = document.getElementById("lead-form-status");
+            const submitBtn = document.getElementById("lead-submit-btn");
+            const API_URL = "http://localhost:3001/api/leads";
+
+            if (!form || !statusEl || !submitBtn) return;
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                statusEl.textContent = "";
+
+                const name = form.name.value.trim();
+                const phone = form.phone.value.trim();
+                const message = form.message.value.trim();
+                const website = form.website.value.trim();
+                const captchaToken = window.grecaptcha ? window.grecaptcha.getResponse() : "";
+
+                if (website) {
+                    statusEl.textContent = "No se pudo enviar. Intenta de nuevo.";
+                    return;
+                }
+
+                if (!name || !phone || !message) {
+                    statusEl.textContent = "Completa todos los campos obligatorios.";
+                    return;
+                }
+
+                if (!captchaToken) {
+                    statusEl.textContent = "Completa el captcha antes de enviar.";
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = "Enviando...";
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name, phone, message, website, captchaToken, source: "landing-index" }),
+                    });
+
+                    const payload = await response.json();
+                    if (!response.ok) {
+                        throw new Error(payload.message || "No se pudo enviar el formulario.");
+                    }
+
+                    form.reset();
+                    if (window.grecaptcha) window.grecaptcha.reset();
+                    statusEl.textContent = "Gracias. Hemos recibido tu mensaje y te contactaremos pronto.";
+                } catch (error) {
+                    statusEl.textContent = error.message || "Ha ocurrido un error. Intenta de nuevo.";
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = "Enviar mensaje";
+                }
+            });
+        })();
+    </script>
     <script src="/_next/static/chunks/045g~0~zva_mv.js" id="_R_" async=""></script>
     <script>(self.__next_f = self.__next_f || []).push([0])</script>
     <script>self.__next_f.push([1, "1:\"$Sreact.fragment\"\n2:I[39756,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n3:I[37457,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\"]\n4:I[83608,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\",\"/_next/static/chunks/0zki5d3~pq~98.js\"],\"default\"]\n14:I[68027,[\"/_next/static/chunks/01xlw8hd842-c.js\",\"/_next/static/chunks/0d3shmwh5_nmn.js\"],\"default\",1]\n:HL[\"/_next/static/chunks/02a_ok6zt6lv7.css\",\"style\"]\n:HL[\"/_next/static/media/1b99372b3eaef0c8-s.p.0gx2haw2tmll8.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n:HL[\"/_next/static/media/83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2\",\"font\",{\"crossOrigin\":\"\",\"type\":\"font/woff2\"}]\n"])</script>
