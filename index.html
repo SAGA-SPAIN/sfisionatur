@@ -742,46 +742,63 @@
         </svg></a><!--$--><!--/$-->
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <script>
+        //En este script validamos los datos antes de enviar al backend
+        //y obtenemos el token del captcha
+        //Esto es una funcion autoejecutable, que se ejecuta al cargar el script
         (() => {
+            //Conectamos el formulario, con esto
             const form = document.getElementById("lead-form");
             const statusEl = document.getElementById("lead-form-status");
             const submitBtn = document.getElementById("lead-submit-btn");
+            //URL para enviar los datos al backend
             const API_URL = "http://localhost:3001/api/leads";
 
+            //Si no hay form, statusEl o submitBtn, no hacemos nada
             if (!form || !statusEl || !submitBtn) return;
 
+            //Agregamos el evento submit al formulario
+            //Con esto agarramos el evento de submit del formulario
+            //cuando el usuario hace click en el boton submit, ejecuta esto.
             form.addEventListener("submit", async (event) => {
+                //Prevenimos el comportamiento por defecto del formulario
                 event.preventDefault();
                 statusEl.textContent = "";
 
+                //Agarramos los valores del formulario con el campo que tiene la etiqueta name = ""
+                // nombre, telefono, mensaje, website, captchaToken
                 const name = form.name.value.trim();
                 const phone = form.phone.value.trim();
                 const message = form.message.value.trim();
                 const website = form.website.value.trim();
+                //Agarramos el token del captcha
                 const captchaToken = window.grecaptcha ? window.grecaptcha.getResponse() : "";
-
+                //Si el usuario ha puesto un website, mostramos un mensaje de error
                 if (website) {
                     statusEl.textContent = "No se pudo enviar. Intenta de nuevo.";
                     return;
                 }
-
+                //Si no hay nombre, telefono o mensaje, mostramos un mensaje de error
                 if (!name || !phone || !message) {
                     statusEl.textContent = "Completa todos los campos obligatorios.";
                     return;
                 }
-
+                //Si no se presiona el captcha, mensaje de error
                 if (!captchaToken) {
                     statusEl.textContent = "Completa el captcha antes de enviar.";
                     return;
                 }
-
+                //Desactivamos boton para posible doble envio
                 submitBtn.disabled = true;
+                //Mostramos un mensaje de envio
                 submitBtn.textContent = "Enviando...";
-
+                //Con esto enviamos los datos al backend
+                //API_URL es la url de la api
                 try {
                     const response = await fetch(API_URL, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
+                        //Con esto enviamos estos datos del formulario
+                        //Que ya estan validados
                         body: JSON.stringify({ name, phone, message, website, captchaToken, source: "landing-index" }),
                     });
 
@@ -789,8 +806,9 @@
                     if (!response.ok) {
                         throw new Error(payload.message || "No se pudo enviar el formulario.");
                     }
-
+                    //Reseteamos el formulario
                     form.reset();
+                    //Resetemas tambien el captcha
                     if (window.grecaptcha) window.grecaptcha.reset();
                     statusEl.textContent = "Gracias. Hemos recibido tu mensaje y te contactaremos pronto.";
                 } catch (error) {
