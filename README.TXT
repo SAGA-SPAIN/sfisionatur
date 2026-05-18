@@ -4,7 +4,7 @@
 4. Una vez ahi nos dirigimos al formulario y rellenamos todos los campos.
 5. Para verificar que funciona nos vamos a la ruta /backend/data/leads.jsonl
 6. Ahi dentro estan guardados todos los usuarios
-7. Tercera prueba
+7. Prueba
 
 
 1. Conectar con Google calender
