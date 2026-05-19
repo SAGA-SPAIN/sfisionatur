@@ -16,6 +16,7 @@ app.use(express.json());
 // =================== RECAPTCHA + LEADS =====================
 
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || "";
+const RECAPTCHA_SECRET_KEY_WWW = process.env.RECAPTCHA_SECRET_KEY_WWW || "";
 const LEADS_FILE = path.join(__dirname, "data", "leads.jsonl");
 
 // validar teléfono
@@ -24,13 +25,22 @@ function isValidPhone(phone) {
 }
 
 // reCAPTCHA
-async function verifyRecaptcha(token) {
-  if (!RECAPTCHA_SECRET_KEY) {
+async function verifyRecaptcha(token, hostname) {
+  // Elegimos la secret key segun el dominio donde se cargo el formulario
+  // (tenemos 2 reCAPTCHA: una para sfisionatur.com y otra para www.sfisionatur.com)
+  let secret;
+  if (hostname === "www.sfisionatur.com") {
+    secret = RECAPTCHA_SECRET_KEY_WWW;
+  } else {
+    secret = RECAPTCHA_SECRET_KEY;
+  }
+
+  if (!secret) {
     throw new Error("RECAPTCHA no configurado");
   }
 
   const params = new URLSearchParams();
-  params.append("secret", RECAPTCHA_SECRET_KEY);
+  params.append("secret", secret);
   params.append("response", token);
 
   const response = await fetch(
@@ -62,7 +72,7 @@ async function saveLead(lead) {
 app.post("/api/leads", async (req, res) => {
   console.log("LLEGOO REQUEST");
   try {
-    const { name, phone, message, website, captchaToken } = req.body;
+    const { name, phone, message, website, captchaToken, hostname } = req.body;
 
     // bot trap
     if (website) {
@@ -82,7 +92,7 @@ app.post("/api/leads", async (req, res) => {
       return res.status(400).json({ message: "Teléfono inválido" });
     }
 
-    const captchaOk = await verifyRecaptcha(captchaToken);
+    const captchaOk = await verifyRecaptcha(captchaToken, hostname);
     if (!captchaOk) {
       return res.status(400).json({ message: "Captcha inválido" });
     }
